@@ -37,23 +37,22 @@ def fetch_item_urls(search_url):
     
     # URLにアクセス
     driver.get(search_url)
-    
+    print('getdekita')
     # ページが完全に読み込まれるまで待機
     WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#item-grid ul li > div > a"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.search_tab div.item-box__text-wrapper p > a"))
     )
     
     # 初回リンクの取得
-    item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li > div > a")]
+    item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "div.search_tab div.item-box__text-wrapper p > a")]
 
     # ページの一番下までスクロールして、さらにリンクを取得
-    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     for _ in range(10):
         driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight / 10 * ({_ + 1}));")
         time.sleep(1)  # スクロール後、少し待機してリンクがロードされるのを待つ
 
     # 再度リンクの取得
-    item_links += [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li > div > a")]
+    item_links += [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "div.search_tab div.item-box__text-wrapper p > a")]
 
     # 重複リンクを削除して返す
     return list(set(item_links))
@@ -67,49 +66,73 @@ def fetch_info(url):
         driver.get(url)
 
         WebDriverWait(driver, 15).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#item-info > section:nth-child(1) > section:nth-child(2) > div > div > p"))
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.item__description.only__pc div.item__description__line-limited span"))
         )
 
-        souryo_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(1) > section:nth-child(2) > div > div > p")
-        if souryo_elem:
-            souryo = souryo_elem[0].text
+        # 送料
+        if "送料込" in driver.page_source:
+            souryo = "送料込"
+        elif "着払い" in driver.page_source:
+            souryo = "着払い"
+        else:
+            souryo = ""
+        print(souryo)
 
-        kingaku_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(1) > section:nth-child(2) > div > div > div > span:nth-child(2)")
+
+        # 金額  
+        kingaku_elem = driver.find_elements(By.CSS_SELECTOR, "span.item__price")
         if kingaku_elem:
             kingaku = kingaku_elem[0].text
 
-        honnnin_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(5) > div.sc-b26963ff-0.lhhXf > a > div.merUserObject > div > div.content__a9529387 > div.verificationContainer__a9529387 > div > div.text__fafde459")
-        if honnnin_elem:
-            honnnin = honnnin_elem[0].text
-        else :
-            honnnin_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(6) > div.sc-b26963ff-0.lhhXf > a > div.merUserObject > div > div.content__a9529387 > div.verificationContainer__a9529387 > div > div.text__fafde459")
-            if honnnin_elem:
-                honnnin = honnnin_elem[0].text
+        # 本人確認  
+        if "本人確認済" in driver.page_source:
+            honnnin = "本人確認済"
+        elif "ラクマ公式ショップです" in driver.page_source:
+            honnnin = "ラクマ公式ショップです"
+        else:
+            honnnin = "本人確認なし"
+        print(honnnin)
+        
 
-        hoshi_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(5) > div.sc-b26963ff-0.lhhXf > a > div.merUserObject > div > div.content__a9529387 > div.merRating > div > div:nth-child(5)")
-        if hoshi_elem:
-            class_list = hoshi_elem[0].get_attribute("class").split()
-            if class_list == ['star__60fe6cce']:
-                hoshi="hoshi_5"
-            else:
-                hoshi="hoshi_4"
-        else :
-            hoshi_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(6) > div.sc-b26963ff-0.lhhXf > a > div.merUserObject > div > div.content__a9529387 > div.merRating > div > div:nth-child(5)")
-            if hoshi_elem:
-                class_list = hoshi_elem[0].get_attribute("class").split()
-                if class_list == ['star__60fe6cce']:
-                    hoshi="hoshi_5"
-                else:
-                    hoshi="hoshi_4"
-
-        detail_elem = driver.find_elements(By.CSS_SELECTOR,"#item-info > section:nth-child(2) > div > div > pre")
+        # 商品説明
+        detail_elem = driver.find_elements(By.CSS_SELECTOR,"div.item__description.only__pc div.item__description__line-limited a span")
         if detail_elem:
-            detail = detail_elem[0].text
-        response = gemini_client.generate_content(detail + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。")
-        omosa = response
+            detail = detail_elem[0].get_attribute("textContent")
+        # response = gemini_client.generate_content(detail + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。")
+        # omosa = response
+
+        max_retries = 10
+        retry_delay = 5  # 秒
+
+        for attempt in range(max_retries):
+            print(len(detail))
+            try:
+                response = gemini_client.generate_content(
+                    detail + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。"
+                )
+                omosa = response
+                break  # 成功したらループ抜ける
+            except Exception as e:
+                print(f"geminiの呼び出しに失敗: {e}。{attempt + 1}回目のリトライを5秒後に実施します...")
+                time.sleep(retry_delay)
+        else:
+            print("最大リトライ回数に達しました。処理を中断します。")
+            omosa = ""
+        print(f"omosa={omosa.strip()}")
+
+        # 星
+        link_honnnin = driver.find_elements(By.CSS_SELECTOR, "div.icon_and_shop_info_and_verifed-badge a")
+        print(link_honnnin[0])
+        item_links = link_honnnin[0].get_attribute("href")
+        driver.get(item_links)
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "h2.content-group__title"))
+        )
+        hoshi = driver.find_elements(By.CSS_SELECTOR, "div.shop_score__score")
+        hoshi_score = hoshi[0].text
 
         print(f"{url=}, {souryo=}, {kingaku=},{omosa=}")
-        return (kaigyo(url), kaigyo(souryo), kaigyo(kingaku), kaigyo(honnnin), kaigyo(detail),omosa.strip(),hoshi)
+        return (url, souryo, kingaku, honnnin, detail,omosa.strip(),hoshi_score)
 
     except Exception as e:
         print(f"エラーが発生しました: {url} - {e}")
@@ -123,7 +146,7 @@ def getget_parallel(urls,filename):
         writer = csv.writer(f)
         writer.writerow(['URL', '送料', '金額', '本人', '説明', '重さ', '星'])
 
-        with ThreadPoolExecutor(max_workers=5) as executor: 
+        with ThreadPoolExecutor(max_workers=1) as executor: 
             futures = [executor.submit(fetch_info, url) for url in urls]
 
             for future in as_completed(futures):
@@ -139,5 +162,5 @@ if __name__ == "__main__":
         new_filename = f"{const.out_dir}{const.rakuma_filename.replace('.csv', '')}_{current_time}.csv"
         print(new_filename)
         urls = fetch_item_urls(search_url)
-        print(urls)  
-        # getget_parallel(urls,new_filename)  
+        print(urls)
+        getget_parallel(urls,new_filename)  

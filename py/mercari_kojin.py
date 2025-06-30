@@ -49,11 +49,11 @@ def fetch_item_urls(search_url):
     
     # ページが完全に読み込まれるまで待機
     WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#item-grid ul li > div > a"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#item-grid ul li > a"))
     )
     
     # 初回リンクの取得
-    item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li > div > a")]
+    item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li >  a")]
 
     # ページの一番下までスクロールして、さらにリンクを取得
     # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -61,8 +61,19 @@ def fetch_item_urls(search_url):
         driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight / 10 * ({_ + 1}));")
         time.sleep(1)  # スクロール後、少し待機してリンクがロードされるのを待つ
 
+    # もっと見るボタンを押す
+    wait = WebDriverWait(driver, 10)
+    more_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#main > section > div > div > button")))
+    # スクロールして見えるようにする
+    driver.execute_script("arguments[0].scrollIntoView(true);", more_button)
+    time.sleep(0.5)  # 少し待ってからクリック
+
+    # JavaScriptで強制クリック
+    driver.execute_script("arguments[0].click();", more_button)
+    time.sleep(1)  # ボタンクリック後、少し待機
+
     # 再度リンクの取得
-    item_links += [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li > div > a")]
+    item_links += [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li >  a")]
 
     # 重複リンクを削除して返す
     return list(set(item_links))

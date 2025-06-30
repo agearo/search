@@ -19,6 +19,15 @@ import datetime
 from util.driver_factory import DriverFactory
 from util.gemini_client import GeminiClient
 
+
+"""
+このスクリプトは、ヤフオク個人ページの商品情報を自動で取得するためのものです。
+主に以下の機能を持っています。  
+1. 指定されたURLから商品リンク(最大50)を取得する。
+2. 各商品リンクから詳細情報を取得する。（このスクリプトは金額のみです）
+3. 取得した情報をCSVファイルに保存する。
+"""
+
 gemini_client = GeminiClient()
 driver_factory=DriverFactory()
 lock = threading.Lock()
@@ -51,17 +60,14 @@ def fetch_item_urls(search_url):
     )
     
     # 初回リンクの取得
-    # item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "ul.Products__items li div.Product__detail h3 a")]
     atags = driver.find_elements(By.CSS_SELECTOR, initlink)
 
     # ページの一番下までスクロールして、さらにリンクを取得
-    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     for _ in range(10):
         driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight / 10 * ({_ + 1}));")
         time.sleep(1)  # スクロール後、少し待機してリンクがロードされるのを待つ
 
     # 再度リンクの取得
-    # item_links += [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "ul.Products__items li div.Product__detail h3 a")]
     atags += driver.find_elements(By.CSS_SELECTOR, initlink)
     atags = list(set(atags))
 
@@ -134,8 +140,7 @@ def fetch_info(url):
                 description = "取得失敗"
 
             try:
-                # response = gemini_client.generate_content(description + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。")
-                # omosa = response
+                #取得不要なのでコメントアウト
                 omosa = "取得失敗"
             except:
                 omosa = "取得失敗"
@@ -158,7 +163,7 @@ def getget_parallel(urls,filename):
         writer = csv.writer(f)
         writer.writerow(['URL', '送料', '金額', '本人', '説明', '重さ', '星'])
 
-        with ThreadPoolExecutor(max_workers=5) as executor: 
+        with ThreadPoolExecutor(max_workers=10) as executor: 
             futures = [executor.submit(fetch_info, url) for url in urls]
 
             for future in as_completed(futures):
@@ -174,5 +179,5 @@ if __name__ == "__main__":
         new_filename = f"{const.out_dir}{const.yafu_filename.replace('.csv', '')}_{current_time}.csv"
         print(new_filename)
         urls = fetch_item_urls(search_url)
-        print(urls)  
+        print(urls)
         getget_parallel(urls,new_filename)  
