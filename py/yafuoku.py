@@ -44,12 +44,12 @@ def fetch_item_urls(search_url):
     
     # ページが完全に読み込まれるまで待機
     WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "ul.Products__items li div.Product__detail h3 a"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.Product__titleLink"))
     )
     
     # 初回リンクの取得
     # item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "ul.Products__items li div.Product__detail h3 a")]
-    atags = driver.find_elements(By.CSS_SELECTOR, "ul.Products__items li div.Product__detail h3 a")
+    atags = driver.find_elements(By.CSS_SELECTOR, "a.Product__titleLink")
 
     # ページの一番下までスクロールして、さらにリンクを取得
     # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -59,7 +59,7 @@ def fetch_item_urls(search_url):
 
     # 再度リンクの取得
     # item_links += [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "ul.Products__items li div.Product__detail h3 a")]
-    atags += driver.find_elements(By.CSS_SELECTOR, "ul.Products__items li div.Product__detail h3 a")
+    atags += driver.find_elements(By.CSS_SELECTOR, "a.Product__titleLink")
     atags = list(set(atags))
 
     links_with_index= []
@@ -93,51 +93,51 @@ def fetch_info(url):
             driver.refresh()
 
             # 商品名の部分読むまで待つ
-            WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "span.sc-f3056978-17.qnBjW.ItemDetail__ShippingFreeLabel"))
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "h1.gv-u-fontSize16--_aSkEz8L_OSLLKFaubKB.gv-u-fontWeightBold--sVSx7bUE6MAd26cg9XrB"))
             )
-
 
             # 送料無料部分
             try:
-                shipping = driver.find_element(By.CSS_SELECTOR, "span.sc-f3056978-17.qnBjW.ItemDetail__ShippingFreeLabel").text
+                shipping = driver.find_element(By.CSS_SELECTOR, "#itemPostage > div > dl > dd > p").text
             except:
                 shipping = "取得失敗"
 
             # 金額部分
             try:
-                price = driver.find_element(By.CSS_SELECTOR, "span.sc-43a21b02-0.lfSzHD").text
+                price = driver.find_element(By.CSS_SELECTOR, "span.sc-1f0603b0-2.kxUAXU").text
             except:
                 price = "取得失敗"
 
             # 本人部分
             try:
-                identity = driver.find_element(By.CSS_SELECTOR, "p.sc-368024b-5.kDifBZ").text
+                elems = driver.find_elements(By.PARTIAL_LINK_TEXT, "本人")
+                identity = elems[0].text if elems else "取得失敗"
             except:
                 identity = "取得失敗"
 
             # 星部分
             try:
-                stars = driver.find_elements(By.CSS_SELECTOR, "span.sc-a4717d6d-1.ijyROn")
-                # 星の数（要素の数）をカウント
-                star_count = len(stars)
+                stars = driver.find_elements(By.CSS_SELECTOR, "span.sc-7f092fc9-8.DMZbS").text
             except:
-                star_count = "取得失敗"
+                stars = "取得失敗"
 
-            # 説明部分
-            try:
-                description = driver.find_element(By.CSS_SELECTOR, "span.sc-43a21b02-0.bgOrgw").text
-            except:
-                description = "取得失敗"
+            # # 説明部分
+            # try:
+            #     description = driver.find_element(By.CSS_SELECTOR, "span.sc-43a21b02-0.bgOrgw").text
+            # except:
+            #     description = "取得失敗"
+            description = "取得失敗"
 
-            try:
-                response = gemini_client.generate_content(description + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。余計な説明はしないで。")
-                omosa = response
-            except:
-                omosa = "取得失敗"
+            # try:
+            #     response = gemini_client.generate_content(description + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。余計な説明はしないで。")
+            #     omosa = response
+            # except:
+            #     omosa = "取得失敗"
+            omosa = "取得失敗"
 
-            print(f"{url}, {shipping}, {price},{identity},{star_count},{omosa}")
-            return (url, shipping, price, identity, description,omosa.strip(),star_count)
+            print(f"{url}, {shipping}, {price},{identity},{stars},{omosa}")
+            return (url, shipping, price, identity, description,omosa.strip(),stars)
 
         except Exception as e:
             print(f"エラーが発生しました: {url} - {e}")
@@ -154,8 +154,9 @@ def getget_parallel(urls,filename):
         writer = csv.writer(f)
         writer.writerow(['URL', '送料', '金額', '本人', '説明', '重さ', '星'])
 
+        # 20個までとる
         with ThreadPoolExecutor(max_workers=5) as executor: 
-            futures = [executor.submit(fetch_info, url) for url in urls]
+            futures = [executor.submit(fetch_info, url) for url in urls[:20]]
 
             for future in as_completed(futures):
                 row = future.result()
@@ -170,5 +171,6 @@ if __name__ == "__main__":
         new_filename = f"{const.out_dir}{const.yafu_filename.replace('.csv', '')}_{current_time}.csv"
         print(new_filename)
         urls = fetch_item_urls(search_url)
+        # urls = ["https://auctions.yahoo.co.jp/jp/auction/j1186396489"]
         print(urls)  
         getget_parallel(urls,new_filename)  

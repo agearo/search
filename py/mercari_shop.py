@@ -79,36 +79,21 @@ def fetch_info(url):
         driver.get(url)
 
         WebDriverWait(driver, 15).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#item-info > section:nth-child(1) > section:nth-child(2) > div > div > p"))
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#product-info > section:nth-child(1) > section:nth-child(2) > div > div > span.currency"))
         )
 
         souryo_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(1) > section:nth-child(2) > div > div > p")
         if souryo_elem:
             souryo = souryo_elem[0].text
 
-        price_elements = driver.find_elements(By.CSS_SELECTOR, 'div[data-testid="price"]')
-        if price_elements:
-            kingaku = price_elements[0].text.strip()
-        else:
-            # なければ取り消し線の旧価格（セール前など）を探す
-            old_price_elements = driver.find_elements(By.CSS_SELECTOR, 'span.number__6b270ca7.strikethrough__6b270ca7')
-            if old_price_elements:
-                kingaku = old_price_elements[0].text.strip()
-            else:
-                kingaku = "不明"
+        price_elements = driver.find_elements(By.CSS_SELECTOR, '#product-info > section:nth-child(1) > section:nth-child(2) > div > div > span:nth-child(2)')
+        kingaku = price_elements[0].text if price_elements else ''
 
-        honnnin_elem = driver.find_elements(By.CSS_SELECTOR, "div.text__fafde459")
-        if honnnin_elem:
-            honnnin = honnnin_elem[0].text.strip()
-
-        mer_rating_elem = driver.find_element(By.CSS_SELECTOR, "div.merRating")
-        stars = mer_rating_elem.find_elements(By.CSS_SELECTOR, "div.star__60fe6cce")
-        star_count = len(stars)
-        hoshi = f"hoshi_{star_count}"
-
+        honnnin='本人確認済み'
+        hoshi = "hoshi_5"
 
         # 詳細情報を取得
-        detail_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(2) > div > div > pre")
+        detail_elem = driver.find_elements(By.CSS_SELECTOR, "#product-info > section:nth-child(2) > div.merShowMore.mer-spacing-b-16 > div > pre")
         if detail_elem:
             detail = detail_elem[0].text
             prompt = (
@@ -159,7 +144,36 @@ if __name__ == "__main__":
     for search_url in search_urls:
         current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         new_filename = f"{const.out_dir}{const.mercari_filename.replace('.csv', '')}_{current_time}.csv"
-        print(new_filename)
-        urls = fetch_item_urls(search_url)
-        print(urls)  
+        # print(new_filename)
+        # urls = fetch_item_urls(search_url)
+        # print(urls)  
+        urls =['https://jp.mercari.com/shops/product/aqqM6NH2K3fEJqDsaRFbiK',
+'https://jp.mercari.com/shops/product/k8ztTwi4qC4TvPvta6Kj6Z',
+'https://jp.mercari.com/shops/product/mrshHVREhPFuwWjcdPfUub',
+'https://jp.mercari.com/shops/product/8Fsko5iAuqotWekS6xfG47',
+'https://jp.mercari.com/shops/product/ufLQsZfdiynXsFY9378CaA',
+'https://jp.mercari.com/shops/product/3TFwDWQvz9osdhUuwnoPJd',
+'https://jp.mercari.com/shops/product/FzMACJsbTSDm2eePYRZiWm',
+'https://jp.mercari.com/shops/product/d3zoUadGvfswmf3AvRm6HY',
+'https://jp.mercari.com/shops/product/pmnEPaWPB8SE7s8yJQ4bnG',
+'https://jp.mercari.com/shops/product/smqskgj88VWogr3FNwfNCY',
+'https://jp.mercari.com/shops/product/WSUfyS26q7xVqBxnxXuqtD',
+'https://jp.mercari.com/shops/product/D5NKeYfd4zZ5QGvACzovXh',
+'https://jp.mercari.com/shops/product/TmV9H54eFVxa7WvihkopoN',
+'https://jp.mercari.com/shops/product/ocdRLKVPdYvq2tDYyiyYAa',
+'https://jp.mercari.com/shops/product/HJei83RXrrGDQqUabxteDZ',
+'https://jp.mercari.com/shops/product/m34ZVrpWD4GGwDqkFpPUNe',
+'https://jp.mercari.com/shops/product/EGBRbnFPekh4WY6umAY2mF',
+'https://jp.mercari.com/shops/product/mCFeWi289Lhc9Jn34WQSX5',
+'https://jp.mercari.com/shops/product/h9giPNkunKugYhxXcLWe2j',
+'https://jp.mercari.com/shops/product/xhDuA7hMCodVPpHzFUKRFA',
+'https://jp.mercari.com/shops/product/ADfip3DCTF8eeQPNjVFrBL',
+'https://jp.mercari.com/shops/product/RqaiACNLqDTjkxhH7HEUi5',
+'https://jp.mercari.com/shops/product/dNamr4vqgdVZDNo8kpg33P',
+'https://jp.mercari.com/shops/product/NBSa9aYgcqzJ5QvoKpDUh ',
+'https://jp.mercari.com/shops/product/pfgQvrF2YZLVFhVsRfnzM6',
+'https://jp.mercari.com/shops/product/nhnfVZNUFvkHMmCwzWA62C',
+'https://jp.mercari.com/shops/product/ED86uUnkFWN8QACmqVUoB8',
+'https://jp.mercari.com/shops/product/bmvG4m3sLqeZMWh8MPnePo',
+'https://jp.mercari.com/shops/product/bWrMDDwG3xDwpc3gXqPa6L',]
         getget_parallel(urls,new_filename)  
