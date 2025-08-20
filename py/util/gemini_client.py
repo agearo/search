@@ -4,7 +4,7 @@ import const
 
 class GeminiClient:
     def __init__(self, api_key=None, model_name=None):
-        self.api_key = api_key or const.apikey
+        self.api_key = api_key or const.apikey3
         self.model_name = model_name or const.gemini_model
         self.configure_client()
 

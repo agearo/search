@@ -40,40 +40,43 @@ def fetch_item_urls(search_url):
     driver.get(search_url)
     print('アクセス中:', search_url)
     WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".image-wrapper--3eWn3"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#risFil > table:nth-child(3) > tbody > tr"))
     )
-
-    # 初回リンクの取得 
-    item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, ".image-wrapper--3eWn3 a[target='_top']")]
 
     # ページの一番下までスクロールして、さらにリンクを取得
     scroll_to_bottom(driver)
 
     # 複数の商品親要素を取得
-    items = WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((
-            By.CSS_SELECTOR,
-            ".dui-card.searchresultitem.overlay-control-wrapper--3KBO0.title-control-wrapper--1rzvX"
-        ))
+    item_rows = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR,"#risFil > table:nth-child(3) > tbody > tr"))
     )
+    filtered_items = []
+
+    for row in item_rows:
+        tds = row.find_elements(By.TAG_NAME, "td")
+        for td in tds:
+            try:
+                td.find_element(By.CLASS_NAME, "category_itemnamelink")  # 存在確認
+                filtered_items.append(td)
+            except:
+                continue
 
     # 再度リンクの取得
     results = []
-    for item in items:
+    for item in filtered_items:
         try:
             # URL取得
-            url = item.find_element(By.CSS_SELECTOR, ".image-wrapper--3eWn3 a[target='_top']").get_attribute("href")
+            url = item.find_element(By.CLASS_NAME, "category_itemnamelink").get_attribute("href")
 
             # 価格取得
-            price = item.find_element(By.CSS_SELECTOR, ".price--3zUvK").text
+            price = item.find_element(By.CLASS_NAME, "category_itemprice").text
 
             # 送料判定
             try:
-                item.find_element(By.CLASS_NAME, "free-shipping-label--1shop")
-                shipping = "送料無料"
+                shipping=item.find_element(By.CLASS_NAME, "category_itemtaxpostage").text
             except:
                 try:
-                    shipping = item.find_element(By.CLASS_NAME, "paid-shipping-wrapper--1Sq8U").text
+                    shipping=item.find_element(By.CLASS_NAME, "category_itemtaxpostage").text
                 except:
                     shipping = "送料情報なし"
 
@@ -87,9 +90,6 @@ def fetch_item_urls(search_url):
         except Exception as e:
             print("要素取得失敗:", e)
 
-
-
-    # 重複リンクを削除して返す
     return results
     
 
@@ -112,7 +112,7 @@ def scroll_to_bottom(driver, pause_time=5):
 
 # メイン処理
 if __name__ == "__main__":
-    search_urls = const.rakuten_search_urls
+    search_urls = const.rakuten_koten_urls
     for search_url in search_urls:
         current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         new_filename = f"{const.out_dir}{const.rakuten_filename.replace('.csv', '')}_{current_time}.csv"
