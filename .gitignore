@@ -6,3 +6,5 @@ const.py
 .vscode
 test.py
 !.gitkeep
+*.txt
+*.xlsx
