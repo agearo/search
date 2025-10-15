@@ -78,6 +78,8 @@ def fetch_item_urls(search_url):
     # 重複リンクを削除して返す
     return list(set(item_links))
 
+
+
 def kaigyo(moji):
     return moji
     # return moji.replace('\n', '').replace('\r', '')
@@ -166,7 +168,7 @@ def getget_parallel(urls,filename):
 
 # メイン処理
 if __name__ == "__main__":
-    search_urls = const.mer_search_urls
+    search_urls = const.mer_kojin
     for search_url in search_urls:
         current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         new_filename = f"{const.out_dir}{const.mercari_filename.replace('.csv', '')}_{current_time}.csv"

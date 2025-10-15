@@ -126,10 +126,37 @@ def fetch_info(url):
             souryo = lines[0]
         else:
             souryo = "不明"
+            
+        # id="itemDetail" の要素を取得
+        item_detail_elem = driver.find_element(By.ID, "itemDetail")
 
+        # 中のテキストを全部取得
+        all_text = item_detail_elem.text
+        omosa = ''
+        print(all_text)
+        if all_text:
+            prompt = (
+                all_text + "これはジャケットです。" +
+                "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。"
+                "500g以下と思われるなら500と答えて。余計な説明はいらない"
+            )
 
-        print(f"{url=}, {souryo=}, {kingaku=},")
-        return (kaigyo(url), kaigyo(souryo), kaigyo(kingaku),)
+            # 最大3回リトライ
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = gemini_client.generate_content(prompt)
+                    omosa = response
+                    break  # 成功したら抜ける
+                except Exception as e:
+                    print(f"Gemini リクエスト失敗 ({attempt+1}回目): {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(30)  # 少し待ってからリトライ
+                    else:
+                        omosa = ''  # 最後まで失敗したら None 等で扱う
+
+        print(f"{url=}, {souryo=}, {kingaku=}, {omosa=}")
+        return (kaigyo(url), kaigyo(souryo), kaigyo(kingaku), omosa.strip())
 
     except Exception as e:
         print(f"エラーが発生しました: {url} - {e}")

@@ -108,7 +108,7 @@ def fetch_info(url):
             print(len(detail))
             try:
                 response = gemini_client.generate_content(
-                    detail + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。"
+                    detail + "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。500g以下と思われるなら500と答えて。余計な説明はいらない。"
                 )
                 omosa = response
                 break  # 成功したらループ抜ける
@@ -156,7 +156,7 @@ def getget_parallel(urls,filename):
 
 # メイン処理
 if __name__ == "__main__":
-    search_urls = const.rak_search_urls
+    search_urls = const.rakuma_search_urls
     for search_url in search_urls:
         current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         new_filename = f"{const.out_dir}{const.rakuma_filename.replace('.csv', '')}_{current_time}.csv"

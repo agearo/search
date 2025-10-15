@@ -31,32 +31,37 @@ from conf.log_config import setup_logging
 setup_logging(__file__)
 logger = logging.getLogger(__name__)
 
-# 商品リンクを取得する関数
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 def fetch_item_urls(search_url):
     driver = driver_factory.create_driver()
-    
-    # URLにアクセス
     driver.get(search_url)
-    
-    # ページが完全に読み込まれるまで待機
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#item-grid ul li > div > a"))
+
+    # 商品リンクが出るまで待つ
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.chakra-link.css-19p30tk"))
     )
-    
-    # 初回リンクの取得
-    item_links = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li > div > a")]
 
-    # ページの一番下までスクロールして、さらにリンクを取得
-    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    for _ in range(10):
-        driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight / 10 * ({_ + 1}));")
-        time.sleep(1)  # スクロール後、少し待機してリンクがロードされるのを待つ
+    urls = []
+    # 全てのリンクを取る
+    links = driver.find_elements(By.CSS_SELECTOR, "a.chakra-link.css-19p30tk")
+    for link in links:
+        # 子要素に soldout-label があるか確認
+        soldout = link.find_elements(By.CSS_SELECTOR, "div[data-testid='soldout-label']")
+        if soldout:  # リストが空じゃない = soldout
+            continue
+        urls.append(link.get_attribute("href"))
 
-    # 再度リンクの取得
-    item_links += [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "#item-grid ul li > div > a")]
+    return urls
 
-    # 重複リンクを削除して返す
-    return list(set(item_links))
+
 
 def kaigyo(moji):
     return moji
@@ -122,7 +127,7 @@ def getget_parallel(urls,filename):
         writer.writerow(['URL', '送料', '金額', '本人', '説明', '重さ', '星'])
 
         with ThreadPoolExecutor(max_workers=5) as executor: 
-            futures = [executor.submit(fetch_info, url) for url in urls[:10]]
+            futures = [executor.submit(fetch_info, url) for url in urls]
 
             for future in as_completed(futures):
                 row = future.result()

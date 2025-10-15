@@ -27,8 +27,6 @@ from util.gemini_client import GeminiClient
 3. 重さはGeminiを使用して推測します。
 4. 取得した情報をCSVファイルに保存する。
 """
-
-gemini_client = GeminiClient()
 driver_factory=DriverFactory()
 lock = threading.Lock()
 
@@ -108,28 +106,31 @@ def fetch_info(url):
 
 
         # 詳細情報を取得
-        detail_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(2) > div > div > pre")
-        if detail_elem:
-            detail = detail_elem[0].text
-            prompt = (
-                detail +
-                "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。"
-                "500g以下と思われるなら500と答えて。余計な説明はいらない"
-            )
+        if gflg==True:
+            detail_elem = driver.find_elements(By.CSS_SELECTOR, "#item-info > section:nth-child(2) > div > div > pre")
+            if detail_elem:
+                detail = detail_elem[0].text
+                prompt = (
+                    detail +
+                    "\n この説明から重さを推測して。大体でいいから。わかったら単位はgとして、数字で答えて。"
+                    "500g以下と思われるなら500と答えて。余計な説明はいらない。"
+                )
 
-            # 最大3回リトライ
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    response = gemini_client.generate_content(prompt)
-                    omosa = response
-                    break  # 成功したら抜ける
-                except Exception as e:
-                    print(f"Gemini リクエスト失敗 ({attempt+1}回目): {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(30)  # 少し待ってからリトライ
-                    else:
-                        omosa = ''  # 最後まで失敗したら None 等で扱う
+                # 最大3回リトライ
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        response = gemini_client.generate_content(prompt)
+                        omosa = response
+                        break  # 成功したら抜ける
+                    except Exception as e:
+                        print(f"Gemini リクエスト失敗 ({attempt+1}回目): {e}")
+                        if attempt < max_retries - 1:
+                            time.sleep(30)  # 少し待ってからリトライ
+                        else:
+                            omosa = ''  # 最後まで失敗したら None 等で扱う
+        else:
+            omosa='500'
         print(f"{url=}, {souryo=}, {kingaku=},{omosa=},{honnnin=},{hoshi=}")
         return (kaigyo(url), kaigyo(souryo), kaigyo(kingaku), kaigyo(honnnin), kaigyo(detail),omosa.strip(),hoshi)
 
@@ -156,10 +157,23 @@ def getget_parallel(urls,filename):
 # メイン処理
 if __name__ == "__main__":
     search_urls = const.mer_search_urls
+    i=1
+    global gemini_client
+    global gflg
+    gflg=True
+    if(gflg==True):
+        print("Geminiを使用します")
+    else:
+        print("Geminiは使用しません")
     for search_url in search_urls:
+        if(i>=3):
+            i=0
+        else:
+            i=i+1
         current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         new_filename = f"{const.out_dir}{const.mercari_filename.replace('.csv', '')}_{current_time}.csv"
         print(new_filename)
         urls = fetch_item_urls(search_url)
-        print(urls)  
-        getget_parallel(urls,new_filename)  
+        print(urls)
+        gemini_client = GeminiClient(apikey=i)
+        getget_parallel(urls,new_filename)
